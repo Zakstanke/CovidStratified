@@ -17,7 +17,7 @@ import numdifftools as nd
 from ci_rvm import find_CI
 
 import os
-os.chdir('C:/Users/zakst/Documents/NIH')
+#os.chdir('C:/Users/zakst/Documents/NIH')
 # os.getcwd()
 
 
@@ -137,7 +137,13 @@ def scv_eig2(s_in, c_in, v_in, debug = False):
     assert ((len(s) == len(c)) & (len(c) == len(v))), "rows not equal"
     assert ((len(s[0]) == len(c[0])) & (len(c[0]) == len(v[0]))), "cols not equal"
     builder = np.matmul(np.matmul(s,c),v)
-    eig = la.eig(builder)[1][:,0]
+    eigs = la.eig(builder)
+    eig = eigs[1][:,0]
+    best = -math.inf
+    for i in range(0, len(eigs[0])):
+        if (eigs[0][i] > best): 
+            best = eigs[0][i]
+            eig = eigs[1][:,i]
     
     # Ensure all elements have the same sign
     neg = False

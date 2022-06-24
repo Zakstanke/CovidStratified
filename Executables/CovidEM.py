@@ -15,7 +15,7 @@ import math
 import warnings
 
 import os
-os.chdir('C:/Users/zakst/Documents/NIH')
+#os.chdir('C:/Users/zakst/Documents/NIH')
 # os.getcwd()
 
 
@@ -118,17 +118,25 @@ def theta_builder(array_in, split = 2, diag = True):
 # Returns Perron-Frobenius eigenvector from matricies S, C, and V
 # Always returns positive elements
 # s & v should be arrays of length 7, c should be 16x16 matrix
-def scv_eig(s, c, v, debug = False):
-    # Turn s & v into square matricies
+def scv_eig(s, c, v, debug = True):
+    # Turn s & v into square matricies    
+    s_in = s
+    v_in = v
     s = theta_builder(s)
     v = theta_builder(v)
-    
+        
     # Ensure that all matricies are the same square dimensions
     assert (len(c) == len(c[0])), "not square"
     assert ((len(s) == len(c)) & (len(c) == len(v))), "rows not equal"
     assert ((len(s[0]) == len(c[0])) & (len(c[0]) == len(v[0]))), "cols not equal"
     builder = np.matmul(np.matmul(s,c),v)
-    eig = la.eig(builder)[1][:,0]
+    eigs = la.eig(builder)
+    eig = eigs[1][:,0]
+    best = -math.inf
+    for i in range(0, len(eigs[0])):
+        if (eigs[0][i] > best): 
+            best = eigs[0][i]
+            eig = eigs[1][:,i]
     
     # Ensure all elements have the same sign
     neg = False
@@ -147,16 +155,22 @@ def scv_eig(s, c, v, debug = False):
     eig_sum = sum(eig)
     eig = [x/eig_sum for x in eig] 
     
+    eig0 = eig
     # Remove complex element from floats
     for i in range(0, len(eig)):
         eig[i] = eig[i].real
     
     assert(sum(np.iscomplex(eig)) == 0), eig #Assert real
+    if not(sum((i > 0) for i in eig) >= len(eig)):
+        if (debug):
+            print("\nS:\t", s_in)
+            #print("C:\t", c)
+            print("V:\t", v_in)
+            print("SCV:\t", builder)
+            print("Eig:\t", eig0)
+            #print(type(eig[1]))
     assert(sum((i > 0) for i in eig) >= len(eig)), eig #Assert positive
     assert(isclose(sum(eig), 1, rel_tol=1e-6)), sum(eig) #Assert sums to 1
-    if (debug):
-        print(eig)
-        print(type(eig[1]))
     
     return eig
 
@@ -185,7 +199,7 @@ def Covid_KL_k(theta0, prem_in, kcases_in, debug = False):
         total_cases = total_cases + kcases[i] #Find total cases per country
     u_hat = [element / total_cases for element in kcases]
     
-    u_tilda = scv_eig(s = theta0[0:(int(len(theta0)/2))], c = prem_in, v = theta0[(int(len(theta0)/2)):])
+    u_tilda = scv_eig(s = theta0[0:(int(len(theta0)/2))], c = prem_in, v = theta0[(int(len(theta0)/2)):], debug = debug)
     # .A1 is needed because theta0[x,:] is returning a nested array for some reason
     assert(isclose(sum(u_tilda), 1, rel_tol=1e-3)), "u-tilda: %s,\tsum: %s" %(u_tilda, sum(u_tilda))
     assert(isclose(sum(u_hat), 1, rel_tol=1e-3)), "u-hat: %s,\tsum: %s" %(u_hat, sum(u_hat))
@@ -195,7 +209,7 @@ def Covid_KL_k(theta0, prem_in, kcases_in, debug = False):
 # Equation 7 from pickling
 # Sums per-country calculations from previous function
 # cases_in -> pandas dataframe, prem_in -> dictionary, country_codes -> string array
-def Covid_KL(theta0, prem_in, cases_in, country_codes):
+def Covid_KL(theta0, prem_in, cases_in, country_codes, debug = False):
     kl_sum = 0
     #Sum the countries together
     for i in range(0, len(country_codes)):
@@ -203,7 +217,8 @@ def Covid_KL(theta0, prem_in, cases_in, country_codes):
         # Unlikely the asserts themselves will be triggering, but the call inside the function will throw its own errors if something is wrong
         #assert(prem_in[country_codes[i]].any != None)
         #assert(cases_in[country_codes[i]].any != None)
-        res = Covid_KL_k(theta0, prem_in[country_codes[i]], cases_in[country_codes[i]])
+        res = Covid_KL_k(theta0, prem_in[country_codes[i]], cases_in[country_codes[i]], 
+                         debug = debug)
         kl_sum = kl_sum + res
         
     return kl_sum
