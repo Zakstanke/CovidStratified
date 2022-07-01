@@ -64,7 +64,7 @@ def pos_Covid_KL(theta0):
     return CovidEM.Covid_KL(theta0, prem_global, cases_global, countries_global)
 
 def CI_calc(estimate, fun):
-    jac = nd.Gradient(fun)
+    jac = nd.Jacobian(fun)
     hess = nd.Hessian(fun)
     
     return find_CI(estimate, fun, jac, hess, alpha = 0.95, disp=True)

@@ -126,20 +126,36 @@ def theta_builder2(array_in, split = 2, diag = True):
 # Returns Perron-Frobenius eigenvector from matricies S, C, and V
 # Always returns positive elements
 # s & v should be arrays of length 7, c should be 16x16 matrix
-def scv_eig2(s_in, c_in, v_in, debug = False):
+def scv_eig2(s, c, v, debug = True, peek = False):
     # Turn s & v into square matricies
-    s = theta_builder2(s_in)
-    c = c_in
-    v = theta_builder2(v_in)
+    s_in = s
+    v_in = v
+    s = theta_builder2(s)
+    v = theta_builder2(v)
     
     # Ensure that all matricies are the same square dimensions
     assert (len(c) == len(c[0])), "not square"
     assert ((len(s) == len(c)) & (len(c) == len(v))), "rows not equal"
     assert ((len(s[0]) == len(c[0])) & (len(c[0]) == len(v[0]))), "cols not equal"
     builder = np.matmul(np.matmul(s,c),v)
+    
+    # Check SCV meets assumptions
+    neg = False
+    pos = False
+    for i in range(0,len(builder)):
+        for j in range(0,len(builder[0])):
+            if (builder[i,j] < 0): neg = True
+            elif (builder[i,j] > 0): pos = True
+            #assert(builder[i,j] != 0), builder[i,j]
+            elif (builder[i,j] == 0): return 0
+            else: assert(False), "Unknown number detected in SCV: (%f)" % builder[i,j] 
+    assert((neg == True) or (pos == True))
+    assert ((neg == True) != (pos == True)), "SCV matrix contains both negative and positive elements"
+    
+    # Find Perron Frobenius Eigenvalue/vector
     eigs = la.eig(builder)
     eig = eigs[1][:,0]
-    best = -math.inf
+    best = eigs[0][0]
     for i in range(0, len(eigs[0])):
         if (eigs[0][i] > best): 
             best = eigs[0][i]
@@ -154,11 +170,7 @@ def scv_eig2(s_in, c_in, v_in, debug = False):
     assert((neg == True) or (pos == True))
     if ((neg == True) and (pos == True)):
         if (debug):
-            print("S: ",s_in)
-            print("C: ",c_in)
-            print("V: ",v_in)
-            print("Eig: ", eig)
-        warnings.warn("Eigenvector contains both negative and positive elements")
+            warnings.warn("Eigenvector contains both negative and positive elements")
             
     if (neg): eig = (-1 * eig) # If negative, flip eigvector so all elements are positive
     
@@ -166,16 +178,24 @@ def scv_eig2(s_in, c_in, v_in, debug = False):
     eig_sum = sum(eig)
     eig = [x/eig_sum for x in eig] 
     
+    eig0 = eig
+    
     # Remove complex element from floats
     for i in range(0, len(eig)):
-        eig[i] = eig[i].real
+        assert(eig[i].imag <= 0.0000001), "Eigenvalue has non-negligible complex components"
+        eig[i] = eig[i].real # forces data type to float
     
-    assert(sum(np.iscomplex(eig)) == 0), eig #Assert real
-    #assert(sum((i > 0) for i in eig) == len(eig)), eig #Assert positive
-    assert(isclose(sum(eig), 1, rel_tol=1e-6)), sum(eig) #Assert sums to 1
-    if (debug):
-        print(eig)
-        print(type(eig[1]))
+    assert(sum(np.iscomplex(eig)) == 0), eig #Assert real 
+    assert(sum((i > 0) for i in eig) >= len(eig)), eig #Assert positive
+    assert(isclose(sum(eig), 1, rel_tol=1e-8)), sum(eig) #Assert sums to 1
+    
+    if (peek):
+        print("\nS:\t", s_in)
+        #print("C:\t", c)
+        print("V:\t", v_in)
+        print("SCV:\t", builder)
+        print("Eig:\t", eig0)
+        #print(type(eig[1]))
     
     return eig
 
@@ -204,8 +224,8 @@ def Covid_KL_k2(theta0, prem_in, kcases_in, debug = False):
         total_cases = total_cases + kcases[i] #Find total cases per country
     u_hat = [element / total_cases for element in kcases]
     
-    u_tilda = scv_eig2(s_in = theta0[0:(int(len(theta0)/2))], c_in = prem_in, v_in = theta0[(int(len(theta0)/2)):])
-    # .A1 is needed because theta0[x,:] is returning a nested array for some reason
+    u_tilda = scv_eig2(s = theta0[0:(int(len(theta0)/2))], c = prem_in, v = theta0[(int(len(theta0)/2)):])
+    if (u_tilda == 0): return math.inf #Check for fail condition within scv_eig
     assert(isclose(sum(u_tilda), 1, rel_tol=1e-3)), "u-tilda: %s,\tsum: %s" %(u_tilda, sum(u_tilda))
     assert(isclose(sum(u_hat), 1, rel_tol=1e-3)), "u-hat: %s,\tsum: %s" %(u_hat, sum(u_hat))
         
@@ -230,10 +250,8 @@ def Covid_KL2(theta0, prem_in, cases_in, country_codes):
     kl_sum = 0
     #Sum the countries together
     for i in range(0, len(country_codes)):
-        # Asserts check that the letter codes can be used on both the cases dataframe and prem dictionary
-        # Unlikely the asserts themselves will be triggering, but the call inside the function will throw its own errors if something is wrong
-        #assert(prem_in[country_codes[i]].any != None)
-        #assert(cases_in[country_codes[i]].any != None)
+        # Consider adding asserts to make sure that the code is present in both dicts
+        # May bot be necessary, because key_errors get thrown if it doesn't exist
         res = Covid_KL_k2(theta0, prem_in[country_codes[i]], cases_in[country_codes[i]])
         kl_sum = kl_sum + res
         
@@ -267,14 +285,14 @@ def get_countries():
     return countries_global
 
 
+# Idk if I need negative or positive here
 def neg_Covid_KL2(theta0):
-    theta0 = param_trans2(theta0)
+    #theta0 = param_trans2(theta0)
     global prem_global
     global cases_global
     global countries_global
     return -1 * Covid_KL2(theta0, prem_global, cases_global, countries_global)
 
-#For testing purposes only
 def pos_Covid_KL2(theta0):
     #theta0 = param_trans2(theta0)
     global prem_global
@@ -287,7 +305,9 @@ def CI_calc2(estimate, fun):
     hess = nd.Hessian(fun)
     
     return find_CI(estimate, fun, jac, hess, alpha = 0.95, 
-                   disp=False, parallel = False)
+                   disp=True, parallel = False,
+                   apprxtol=0.5, resulttol=0.001, minstep=1e-05,
+                   track_x = True, track_f = True)
     
 
 def main():
