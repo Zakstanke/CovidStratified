@@ -93,6 +93,7 @@ def kl_div2(p, q, logbase = math.e):
     for i in range(0, len(p)):
         val = val + (p[i] * math.log((p[i]/q[i]), logbase)) # defaults to natural log
     assert(val >= 0), "Calculated KL Divergence is negtive: (%d)" % val
+    val = math.log(val, 10)
     return val
 
 # Tests known calculation for Kullback-Leibler Divergence
