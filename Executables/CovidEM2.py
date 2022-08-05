@@ -87,13 +87,11 @@ def kl_div2(p, q, logbase = math.e):
         #warnings.warn("Negative number detected")
         return math.inf
     
-    if (neg): return math.inf
-    
     val = 0
     for i in range(0, len(p)):
         val = val + (p[i] * math.log((p[i]/q[i]), logbase)) # defaults to natural log
     assert(val >= 0), "Calculated KL Divergence is negtive: (%d)" % val
-    val = math.log(val, 10)
+    #val = math.log(val, 10)
     return val
 
 # Tests known calculation for Kullback-Leibler Divergence
@@ -156,10 +154,10 @@ def scv_eig2(s, c, v, debug = True, peek = False):
     # Find Perron Frobenius Eigenvalue/vector
     eigs = la.eig(builder)
     eig = eigs[1][:,0]
-    best = eigs[0][0]
+    best = abs(eigs[0][0])
     for i in range(0, len(eigs[0])):
-        if (eigs[0][i] > best): 
-            best = eigs[0][i]
+        if (abs(eigs[0][i]) > best): 
+            best = abs(eigs[0][i])
             eig = eigs[1][:,i]
     
     # Ensure all elements have the same sign
@@ -306,10 +304,13 @@ def CI_calc2(estimate, fun):
     hess = nd.Hessian(fun)
     
     return find_CI(estimate, fun, jac, hess, alpha = 0.95, 
-                   disp=True, parallel = False,
+                   disp=False, parallel = False,
                    apprxtol=0.5, resulttol=0.001, minstep=1e-05,
-                   track_x = True, track_f = True)
+                   track_x = False, track_f = False)
     
+
+def _testing_fun():
+    return("you are in the right file")
 
 def main():
     _test_kl_div2()
