@@ -1,0 +1,473 @@
+---
+title: "CovidEM_figures"
+author: "Zak"
+date: "5/24/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+
+library(ggplot2)
+library(ggthemes)
+library(reshape2)
+
+```
+
+CONFIDENCE INTERVALS
+
+Data input
+```{r}
+
+ci_in <- read.csv("~/NIH/CovidStratified/Output/CIEstimates2.csv")
+
+ci <- ci_in
+ci
+
+ci2 <- data.frame(Age = ci$Age,
+                  Lower = (ci$Estimate - ci$Lower), 
+                  Upper = (ci$Estimate - ci$Upper))
+
+print(ci2)
+```
+
+Graphing
+```{r}
+p <- ggplot() +
+    geom_errorbar(data = ci, aes(x = Age, ymin = Lower, ymax = Upper)) +
+    geom_point(data = ci, aes(x = Age, y = Estimate), size = 1.5) +
+    ggtitle("Estimates with 95% errors")
+print(p)
+
+p2 <- ggplot(data = ci2, aes(x = Age, ymin = Lower, ymax = Upper)) +
+    geom_errorbar() +
+    ggtitle("Centralized 95% errors")
+print(p2)
+
+p3 <- ggplot() +
+    geom_errorbar(data = ci, aes(x = Age, ymin = Lower, ymax = Upper)) +
+    geom_point(data = ci, aes(x = Age, y = Estimate), size = 1.5) +
+    scale_y_continuous(trans = "log10") +
+    ggtitle("Estimates with 95% errors\nLog 10 transformation")
+print(p3)
+
+```
+
+SMOOTHED DATA
+
+Data input
+```{r}
+
+theta_in <- read.csv("~/NIH/CovidStratified/Output/ThetaIterations.csv")
+
+theta_melt <- cbind(trial = row.names(theta_in), theta_in)
+best_trials <- order(-theta_melt$Value)
+theta_melt <- theta_melt[,c(1:33)]
+theta_melt <- melt(theta_melt, id.vars = c("trial"), variable.name = "age")
+
+theta_melt$age <- as.character(theta_melt$age)
+theta_melt <- theta_melt[!endsWith(theta_melt$age, "i"),]
+
+
+# Make new column to separate S & V
+theta_melt <- cbind(theta_melt, 
+                    param = as.integer(startsWith(theta_melt$age,"s")))
+for (i in c(1:nrow(theta_melt)))
+{
+    if (theta_melt$param[i] == 1) {theta_melt$param[i] <- "Susceptibility"}
+    else {theta_melt$param[i] <- "Viral Infectiousness"}
+    theta_melt$age[i] <- substring(as.character(theta_melt$age[i]), 2)
+}
+
+# Return char variables to factors
+theta_melt$param <- as.factor(theta_melt$param)
+theta_melt$age <- as.factor(theta_melt$age)
+theta_melt$trial <- as.factor(theta_melt$trial)
+
+
+# Data frame for best trials
+theta_melt_best <- theta_melt[(theta_melt$trial %in% best_trials[c(1:5)]),]
+fun_val = c(1:nrow(theta_melt_best))
+for (i in c(1:nrow(theta_melt_best)))
+{
+    fun_val[i] <- theta_in$Value[as.integer(as.character(theta_melt_best$trial[i]))]
+    #Need to turn factor into a character first because 'as.int' creates value based on factor level
+}
+theta_melt_best <- cbind(theta_melt_best, fun = fun_val)
+theta_melt_best$fun <- as.factor(as.integer(theta_melt_best$fun))
+theta_melt_best$fun <- factor(theta_melt_best$fun,
+                              levels = levels(theta_melt_best$fun)[5:1])
+# c("30114","24018","21582","21421","20244")
+levels(theta_melt_best$fun) <- c("1st (30114)", "2nd (24018)", "3rd (21582)", "4th (21421)", "5th (20244)")
+
+```
+
+Graphing
+```{r}
+
+# Make color scale for best trials
+my_colors <- c("1st (30114)" = "steelblue 4",
+               "2nd (24018)" = "steelblue",
+               "3rd (21582)" = "steelblue 3",
+               "4th (21421)" = "steelblue 2", 
+               "5th (20244)" = "steelblue 1")
+my_lines <- c("1st (30114)" = "solid",
+              "2nd (24018)" = "22",
+              "3rd (21582)" = "44",
+              "4th (21421)" = "88", 
+              "5th (20244)" = "ff")
+
+# Box and whisker plot
+p <- ggplot(data = theta_melt, aes(x = age, y = value)) +
+    geom_boxplot() +
+    facet_grid(cols = vars(param)) +
+    scale_y_continuous(breaks = c(1:8), limits = c(0,8)) +
+    geom_line(data = theta_melt_best, aes(x = age, y = value, group = trial, 
+                                          color = fun, linetype = fun), size = 1) +
+    scale_color_manual(values = my_colors, name = "Best Trials") +
+    scale_linetype_manual(values = my_lines, name = "Best Trials") +
+    ggtitle("Parameter Estimations from 200 Optimizations") +
+    xlab("Age Group") + ylab("Parameter Value") +
+    theme_classic() +
+    theme(panel.grid.major.y = element_line(size = 0.25, linetype = "solid", color = "grey")) +
+    theme(legend.key.width = unit(3.9, "line"))
+
+p
+
+```
+Lower DF
+```{r}
+theta_min_in <- read.csv("~/NIH/CovidStratified/Output/ThetaIterationsMin.csv")
+
+theta_melt_min <- cbind(trial = row.names(theta_min_in), theta_min_in)
+best_trials <- order(-theta_melt_min$Value)
+theta_melt_min <- theta_melt_min[,c(1:33)]
+theta_melt_min <- melt(theta_melt_min, id.vars = c("trial"), variable.name = "age")
+
+theta_melt_min$age <- as.character(theta_melt_min$age)
+theta_melt_min <- theta_melt_min[!endsWith(theta_melt_min$age, "i"),]
+
+
+# Make new column to separate S & V
+theta_melt_min <- cbind(theta_melt_min, 
+                    param = as.integer(startsWith(theta_melt_min$age,"s")))
+for (i in c(1:nrow(theta_melt_min)))
+{
+    if (theta_melt_min$param[i] == 1) {theta_melt_min$param[i] <- "Susceptibility"}
+    else {theta_melt_min$param[i] <- "Viral Infectiousness"}
+    theta_melt_min$age[i] <- substring(as.character(theta_melt_min$age[i]), 2)
+}
+
+# Return char variables to factors
+theta_melt_min$param <- as.factor(theta_melt_min$param)
+theta_melt_min$age <- as.factor(theta_melt_min$age)
+theta_melt_min$trial <- as.factor(theta_melt_min$trial)
+
+
+# Data frame for best trials
+theta_melt_best <- theta_melt_min[(theta_melt_min$trial %in% best_trials[c(1:5)]),]
+fun_val = c(1:nrow(theta_melt_best))
+for (i in c(1:nrow(theta_melt_best)))
+{
+    fun_val[i] <- theta_min_in$Value[as.integer(as.character(theta_melt_best$trial[i]))]
+    #Need to turn factor into a character first because 'as.int' creates value based on factor level
+}
+theta_melt_best <- cbind(theta_melt_best, fun = fun_val)
+theta_melt_best$fun <- as.factor(as.integer(theta_melt_best$fun))
+theta_melt_best$fun <- factor(theta_melt_best$fun,
+                              levels = levels(theta_melt_best$fun)[5:1])
+# c("30114","24018","21582","21421","20244")
+levels(theta_melt_best$fun) <- c("1st (30114)", "2nd (24018)", "3rd (21582)", "4th (21421)", "5th (20244)")
+
+
+# Box and whisker plot
+p <- ggplot(data = theta_melt_min, aes(x = age, y = value)) +
+    geom_boxplot() +
+    facet_grid(cols = vars(param)) +
+    scale_y_continuous(breaks = c(1:8), limits = c(0,8)) +
+    ggtitle("Parameter Estimations from 200 Optimizations") +
+    xlab("Age Group") + ylab("Parameter Value") +
+    theme_classic() +
+    theme(panel.grid.major.y = element_line(size = 0.25, linetype = "solid", color = "grey")) +
+    theme(legend.key.width = unit(3.9, "line"))
+
+p
+
+```
+
+Upper DF
+```{r}
+theta_max_in <- read.csv("~/NIH/CovidStratified/Output/ThetaIterationsMax.csv")
+
+theta_melt_max <- cbind(trial = row.names(theta_max_in), theta_max_in)
+best_trials <- order(-theta_melt_max$Value)
+theta_melt_max <- theta_melt_max[,c(1:33)]
+theta_melt_max <- melt(theta_melt_max, id.vars = c("trial"), variable.name = "age")
+
+theta_melt_max$age <- as.character(theta_melt_max$age)
+theta_melt_max <- theta_melt_max[!endsWith(theta_melt_max$age, "i"),]
+
+
+# Make new column to separate S & V
+theta_melt_max <- cbind(theta_melt_max, 
+                    param = as.integer(startsWith(theta_melt_max$age,"s")))
+for (i in c(1:nrow(theta_melt_max)))
+{
+    if (theta_melt_max$param[i] == 1) {theta_melt_max$param[i] <- "Susceptibility"}
+    else {theta_melt_max$param[i] <- "Viral Infectiousness"}
+    theta_melt_max$age[i] <- substring(as.character(theta_melt_max$age[i]), 2)
+}
+
+# Return char variables to factors
+theta_melt_max$param <- as.factor(theta_melt_max$param)
+theta_melt_max$age <- as.factor(theta_melt_max$age)
+theta_melt_max$trial <- as.factor(theta_melt_max$trial)
+
+
+# Data frame for best trials
+theta_melt_best <- theta_melt_max[(theta_melt_max$trial %in% best_trials[c(1:5)]),]
+fun_val = c(1:nrow(theta_melt_best))
+for (i in c(1:nrow(theta_melt_best)))
+{
+    fun_val[i] <- theta_max_in$Value[as.integer(as.character(theta_melt_best$trial[i]))]
+    #Need to turn factor into a character first because 'as.int' creates value based on factor level
+}
+theta_melt_best <- cbind(theta_melt_best, fun = fun_val)
+theta_melt_best$fun <- as.factor(as.integer(theta_melt_best$fun))
+theta_melt_best$fun <- factor(theta_melt_best$fun,
+                              levels = levels(theta_melt_best$fun)[5:1])
+# c("30114","24018","21582","21421","20244")
+levels(theta_melt_best$fun) <- c("1st (30114)", "2nd (24018)", "3rd (21582)", "4th (21421)", "5th (20244)")
+
+
+# Box and whisker plot
+p <- ggplot(data = theta_melt_max, aes(x = age, y = value)) +
+    geom_boxplot() +
+    facet_grid(cols = vars(param)) +
+    scale_y_continuous(breaks = c(1:8), limits = c(0,8)) +
+    ggtitle("Parameter Estimations from 200 Optimizations") +
+    xlab("Age Group") + ylab("Parameter Value") +
+    theme_classic() +
+    theme(panel.grid.major.y = element_line(size = 0.25, linetype = "solid", color = "grey")) +
+    theme(legend.key.width = unit(3.9, "line"))
+
+p
+
+```
+
+```{r}
+theta_melt_all <- rbind(cbind(theta_melt, df = rep("standard", nrow(theta_melt))),
+                        cbind(theta_melt_min, df = rep("lower", nrow(theta_melt_min))),
+                        cbind(theta_melt_max, df = rep("upper", nrow(theta_melt_max))))
+
+# Box and whisker plot
+# All three DF
+p <- ggplot(data = theta_melt_all, aes(x = age, y = value, color = df)) +
+    geom_boxplot() +
+    scale_color_manual(values = c("lower" = "#D55E00", 
+                                  "standard" = "black", 
+                                  "upper" = "#0072B2"), 
+                       name = "Degrees of Freedom", 
+                       labels = c("Lower (42 - sqrt(84))", 
+                                  "Standard (42)", 
+                                  "Upper (42 + sqrt(84))")) +
+    facet_grid(cols = vars(param)) +
+    scale_y_continuous(breaks = c(1:8), limits = c(0,7.05)) +
+    scale_x_discrete(labels = c("0-9","10-19","20-29","30-39",
+                                "40-49","50-59","60-69","70-79")) +
+    ggtitle("Parameter Estimations from 200 Optimizations") +
+    xlab("Age Group") + ylab("Parameter Value") +
+    theme_classic() +
+    theme(panel.grid.major.y = 
+              element_line(size = 0.25, linetype = "solid", color = "grey"), 
+          text = element_text(size = 15), 
+          legend.position = c(0.17, 0.75),
+          legend.background = element_rect(size=0.5, linetype="solid", colour ="grey2"),
+          legend.title = element_text(size = 11, face = "bold"),
+          legend.key.width = unit(2, "line"),
+          legend.text = element_text(size = 10),
+          axis.title = element_text(size = 13, face = "bold"),
+          axis.text.x = element_text(size = 11, angle = 30, 
+                                     vjust = 0.8, color = "black"),
+          axis.text.y = element_text(size = 11, color = "black"),
+          strip.text.x = element_text(size = 12, face = "bold"),
+          title = element_text(size = 14, face = "bold"))
+
+p
+```
+
+
+SCV Visualization
+
+Data input
+```{r}
+
+can <- as.matrix(read.csv('~/NIH/CovidStratified/Data/premCan.csv')[,2:17])
+chn <- as.matrix(read.csv('~/NIH/CovidStratified/Data/premChn.csv')[,2:17])
+gbr <- as.matrix(read.csv('~/NIH/CovidStratified/Data/premGbr.csv')[,2:17])
+isr <- as.matrix(read.csv('~/NIH/CovidStratified/Data/premIsr.csv')[,2:17])
+ita <- as.matrix(read.csv('~/NIH/CovidStratified/Data/premIta.csv')[,2:17])
+nld <- as.matrix(read.csv('~/NIH/CovidStratified/Data/premNLD.csv')[,2:17])
+
+best_row <- 0
+best_val <- 0
+for (i in c(1:nrow(theta_in)))
+{
+    if (theta_in$Value[i] > best_val)
+    {
+        best_val <- theta_in$Value[i]
+        best_row <- i
+    }
+}
+
+best_theta <- theta_in[best_row,c(18:ncol(theta_in)-1)]
+best_row <- 19 #used to force examine certain trials
+best_theta2 <- theta_in[best_row,c(18:ncol(theta_in)-1)]
+rm(i)
+rm(best_row)
+rm(best_val)
+```
+
+Theta exploring
+```{r}
+
+theta_explore <- theta_in[,c(17:ncol(theta_in))]
+
+theta_explore <- theta_explore[(theta_explore$v0.9 > 4),]
+theta_explore <- theta_explore[(theta_explore$v10.19 > 1),]
+theta_explore <- theta_explore[(theta_explore$v40.49 < 0.25),]
+theta_explore <- theta_explore[(theta_explore$v70.79 > 2.5),]
+
+```
+
+Median values for S & V
+```{r}
+theta_medians <- rep(0, ncol(theta_in))
+
+for (i in c(1:ncol(theta_in)))
+{
+    theta_medians[i] <- median(theta_in[,i])
+}
+
+theta_medians <- t(as.data.frame(theta_medians[c(17:32)]))
+
+```
+
+SCV Creation
+```{r}
+s <- matrix(data = 0, nrow = 16, ncol = 16)
+v <- matrix(data = 0, nrow = 16, ncol = 16)
+
+# Used to choose which set of theta values to use
+# best_theta : theta with highest optimization value
+# best_theta2 : theta that was manually selected
+# theta_medians : median values for theta
+token_theta <- theta_medians
+
+for (i in c(1:8))
+{
+    s[(2*i),(2*i)] <- token_theta[1,i]
+    s[(2*i)-1,(2*i)-1] <- token_theta[1,i]
+    v[(2*i),(2*i)] <- token_theta[1,i+8]
+    v[(2*i)-1,(2*i)-1] <- token_theta[1,i+8]
+}
+
+scv_can <- ((s %*% can) %*% v)
+scv_chn <- ((s %*% chn) %*% v)
+scv_gbr <- ((s %*% gbr) %*% v)
+scv_isr <- ((s %*% isr) %*% v)
+scv_ita <- ((s %*% ita) %*% v)
+scv_nld <- ((s %*% nld) %*% v)
+
+
+ages <- c("0-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39",
+          "40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79")
+
+rownames(scv_can) <- ages
+colnames(scv_can) <- ages
+rownames(scv_chn) <- ages
+colnames(scv_chn) <- ages
+rownames(scv_gbr) <- ages
+colnames(scv_gbr) <- ages
+rownames(scv_isr) <- ages
+colnames(scv_isr) <- ages
+rownames(scv_ita) <- ages
+colnames(scv_ita) <- ages
+rownames(scv_nld) <- ages
+colnames(scv_nld) <- ages
+
+scv_can <- melt(scv_can)
+colnames(scv_can) <- c("a", "b", "value")
+scv_chn <- melt(scv_chn)
+colnames(scv_chn) <- c("a", "b", "value")
+scv_gbr <- melt(scv_gbr)
+colnames(scv_gbr) <- c("a", "b", "value")
+scv_isr <- melt(scv_isr)
+colnames(scv_isr) <- c("a", "b", "value")
+scv_ita <- melt(scv_ita)
+colnames(scv_ita) <- c("a", "b", "value")
+scv_nld <- melt(scv_nld)
+colnames(scv_nld) <- c("a", "b", "value")
+```
+
+Graphing Function
+```{r}
+
+scv_heatmap <- function(scv, k = 1, title = 0)
+{
+    country <- c("Canada", "China", "UK", "Israel", "Italy", "Netherlands")
+    country <- country[k]
+    
+    heatmap <- ggplot(data = scv, aes(x = b, y = a, fill = value)) +
+        #geom_text(aes(label = format(value, scientific = TRUE, digits = 3)),
+        #          color = "white", size = 3, angle = 330) +
+        coord_fixed() +
+        geom_tile(color = "black") +
+        scale_fill_continuous(name = "Value") +
+        scale_x_discrete(position = "top") +
+        xlab("Age group of infected") + ylab("Age group of contact") +
+        theme(axis.text.x = element_text(hjust = 1, angle = -60),
+              plot.title = element_text(size = 16, face = "bold"),
+              plot.subtitle = element_text(size = 12, face = "plain"),
+              axis.title = element_text(size = 12, face = "bold"),
+              legend.title = element_text(size = 12, face = "plain"))
+    if (title == 0){
+        heatmap <- heatmap + ggtitle(paste(country)) +
+            theme(plot.title.position = "plot",
+                  plot.title = element_text(vjust = -6))
+    }
+    if (title == 1){
+        heatmap <- heatmap + ggtitle(paste(country),
+                                     subtitle="Optimal trial with atypical patterns")+
+            theme(plot.title.position = "plot")
+    }
+    if (title == 2){
+        heatmap <- heatmap + ggtitle(paste(country),
+                                     subtitle="Suboptimal trial with typical patterns")+
+            theme(plot.title.position = "plot")
+    }
+    if (title == 3){
+        heatmap <- heatmap + ggtitle(paste(country),
+                                     subtitle="Median values for S & V")+
+            theme(plot.title.position = "plot")
+    }
+    
+    return(heatmap)
+}
+
+print(scv_heatmap(scv_can, 1, 3))
+
+```
+
+```{r}
+
+print(scv_heatmap(scv_can, 1, 0))
+print(scv_heatmap(scv_chn, 2, 0))
+print(scv_heatmap(scv_gbr, 3, 0))
+print(scv_heatmap(scv_isr, 4, 0))
+print(scv_heatmap(scv_ita, 5, 0))
+print(scv_heatmap(scv_nld, 6, 0))
+
+```
+

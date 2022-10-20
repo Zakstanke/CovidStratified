@@ -154,10 +154,10 @@ def scv_eig2(s, c, v, debug = True, peek = False):
     # Find Perron Frobenius Eigenvalue/vector
     eigs = la.eig(builder)
     eig = eigs[1][:,0]
-    best = abs(eigs[0][0])
+    best = eigs[0][0]
     for i in range(0, len(eigs[0])):
-        if (abs(eigs[0][i]) > best): 
-            best = abs(eigs[0][i])
+        if (eigs[0][i] > best): 
+            best = eigs[0][i]
             eig = eigs[1][:,i]
     
     # Ensure all elements have the same sign
@@ -308,9 +308,6 @@ def CI_calc2(estimate, fun):
                    apprxtol=0.5, resulttol=0.001, minstep=1e-05,
                    track_x = False, track_f = False)
     
-
-def _testing_fun():
-    return("you are in the right file")
 
 def main():
     _test_kl_div2()

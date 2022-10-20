@@ -5,12 +5,10 @@ Created on Mon Jun  6 15:35:06 2022
 @author: zakst
 """
 
-import os
 import numpy as np
-import warnings
 import numdifftools as nd
 from ci_rvm import find_CI
-import CovidEM
+import CovidKL
 
 # global variables and functions for CI calculation
 prem_global = {}
@@ -49,30 +47,32 @@ def param_trans(params_in):
     return params
 
 def neg_Covid_KL(theta0):
-    #theta0 = param_trans(theta0)
+    theta0 = param_trans(theta0)
     global prem_global
     global cases_global
     global countries_global
-    return -1 * CovidEM.Covid_KL(theta0, prem_global, cases_global, countries_global)
+    return -1 * CovidKL.Covid_KL(theta0, prem_global, cases_global, countries_global)
 
 #For testing purposes only
 def pos_Covid_KL(theta0):
-    #theta0 = param_trans(theta0)
+    theta0 = param_trans(theta0)
     global prem_global
     global cases_global
     global countries_global
-    return CovidEM.Covid_KL(theta0, prem_global, cases_global, countries_global)
+    return CovidKL.Covid_KL(theta0, prem_global, cases_global, countries_global)
 
 def CI_calc(estimate, fun):
-    jac = nd.Jacobian(fun)
+    jac = nd.Gradient(fun)
     hess = nd.Hessian(fun)
     
-    return find_CI(estimate, fun, jac, hess, alpha = 0.95, disp=True)
+    return find_CI(estimate, fun, jac, hess, alpha = 0.95, 
+                   disp= False, parallel = False,
+                   apprxtol=0.5, resulttol=0.001, minstep=1e-05)
 
 
 def main():
     
-    return "something amazing"
+    return "something amazing hopefully"
 
 if __name__ == "__main__":
     main()
