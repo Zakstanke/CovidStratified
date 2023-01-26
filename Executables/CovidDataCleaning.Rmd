@@ -1,0 +1,147 @@
+---
+title: "NIH data"
+author: "Zak"
+date: "12/2/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+
+knitr::opts_chunk$set(echo = TRUE)
+
+
+set.seed(0451)
+library(ggplot2)
+library(foreign)
+```
+
+
+Data Init
+```{r}
+# read in data
+data.in <- read.csv("~/NIH/CovidStratified/Data for Zak/age_structure_data.csv")
+
+# Populations (2020) from https://www.worldometers.info/population/world/
+population <- as.numeric(c(1439323776, 67886011, 37742154, 60461826, 8655535, 17134872))
+
+# Prem matricies
+# prem.can
+# prem.chn
+# prem.gbr
+# prem.isr
+# prem.ita
+# prem.nld
+
+prem.can <- read.csv("~/NIH/CovidStratified/Data for Zak/Prem Matrices/CAN.csv") #Canada
+prem.chn <- read.csv("~/NIH/CovidStratified/Data for Zak/Prem Matrices/CHN.csv") #China
+prem.gbr <- read.csv("~/NIH/CovidStratified/Data for Zak/Prem Matrices/GBR.csv") #U.K.
+prem.isr <- read.csv("~/NIH/CovidStratified/Data for Zak/Prem Matrices/ISR.csv") #Israel
+prem.ita <- read.csv("~/NIH/CovidStratified/Data for Zak/Prem Matrices/ITA.csv") #Italy
+prem.nld <- read.csv("~/NIH/CovidStratified/Data for Zak/Prem Matrices/NLD.csv") #Netherlands
+
+# Rename rows
+rownames(prem.can) <- prem.can[,1]
+rownames(prem.chn) <- prem.chn[,1]
+rownames(prem.gbr) <- prem.gbr[,1]
+rownames(prem.isr) <- prem.isr[,1]
+rownames(prem.ita) <- prem.ita[,1]
+rownames(prem.nld) <- prem.nld[,1]
+
+#remove first column which contains row names
+prem.can <- prem.can[,c(2:17)]
+prem.chn <- prem.chn[,c(2:17)]
+prem.gbr <- prem.gbr[,c(2:17)]
+prem.isr <- prem.isr[,c(2:17)]
+prem.ita <- prem.ita[,c(2:17)]
+prem.nld <- prem.nld[,c(2:17)]
+
+# Resize prem matricies from 16 strata to 8
+resize.prem <- function(pmat)
+{
+  if ((nrow(pmat) != 16) || (ncol(pmat) != 16)) {stop("Matrix is not 16x16")}
+  newmat <- matrix(0, ncol = 8, nrow=8)
+  for (i in 1:8)
+  {
+    for (j in 1:8)
+    {
+      # 10 year strata infections = sum of both 5 year strata infections
+      newmat[i,j] <- sum(pmat[(2*i)-1,(2*j)-1], pmat[(2*i)-1,(2*j)], 
+                         pmat[(2*i),(2*j)-1],   pmat[(2*i),(2*j)])
+    }
+  }
+  return(newmat)
+}
+
+# create resized prem matricies
+# prem.can <- resize.prem(prem.can)
+# prem.chn <- resize.prem(prem.chn)
+# prem.gbr <- resize.prem(prem.gbr)
+# prem.isr <- resize.prem(prem.isr)
+# prem.ita <- resize.prem(prem.ita)
+# prem.nld <- resize.prem(prem.nld)
+
+
+# make dataset without useless columns
+data.main <- data.in[c(2:7),c(1, 5:7, 9:20)]
+# add column for upper bounds and populations
+data.main <- cbind(data.main[,1], population, data.main[,2:3],
+                   temp = c("","","","4/19/2020","","4/19/2020"),
+                   data.main[,4:ncol(data.main)])
+# rewrite test column
+data.main$Total.tests.per.1000 <- c(0, 8.515, 8.924, 15.469, 14.225, 9.998)
+# rename columns and rows
+colnames(data.main) <- c("country","population","endDate","reportDate",
+                         "reportDateUpBound","tests_per_1000",
+                         "x00","x10","x20","x30","x40","x50","x60","x70",
+                         "x80","x90","ageUnknown", "totalCases")
+rownames(data.main) <- 1:length(rownames(data.main))
+# make case columns numeric
+data.main$x90[is.na(data.main$x90)] <- 0
+data.main$ageUnknown[is.na(data.main$ageUnknown)] <- 0
+
+
+# Cases data frame
+cases <- data.main[,7:15]
+# add row names
+rownames(cases) <- data.main$country
+# turn 80 to 80+
+cases$x80 <- data.main$x80 + data.main$x90
+colnames(cases) <- c(colnames(cases)[1:(length(cases)-1)], "x80plus")
+
+
+
+
+```
+
+
+Data exploration
+```{r}
+
+# Cases in Canada
+cases[3,]
+
+# Canadian Prem matrix
+prem.can
+
+# Dimensions dont match? 
+
+```
+
+
+
+Data Exportation
+```{r}
+
+
+# write.csv(prem.can, "~/NIH/CovidStratified/CleanData/premCan.csv")
+# write.csv(prem.chn, "~/NIH/CovidStratified/CleanData/premChn.csv")
+# write.csv(prem.gbr, "~/NIH/CovidStratified/CleanData/premGbr.csv")
+# write.csv(prem.isr, "~/NIH/CovidStratified/CleanData/premIsr.csv")
+# write.csv(prem.ita, "~/NIH/CovidStratified/CleanData/premIta.csv")
+# write.csv(prem.nld, "~/NIH/CovidStratified/CleanData/premNLD.csv")
+
+write.csv(cases, "~/NIH/CovidStratified/CleanData/cases.csv")
+write.csv(data.main, "~/NIH/CovidStratified/CleanData/fullcases.csv")
+
+```

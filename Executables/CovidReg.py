@@ -12,7 +12,9 @@ import math
 import warnings
 import CovidEig
 
-
+# Latter half of the Chi-squared approximation function. 
+# Needs to be multiplied by total case counts of the specific country after being called
+# uh = "u hat", ut = "u tilda"
 def chi_approx(uh, ut):
     assert(len(uh) == len(ut)), "vectors not the same size"
     if ((len(uh) != 8) and (len(uh) != 16)): 
@@ -27,7 +29,6 @@ def chi_approx(uh, ut):
 
 
 def Covid_reg_k(theta0, prem_in, kcases_in, stand_age = 2, split = 2, debug = False):
-    
     # Input validation
     # Return infinity if there are bad values to punish minimizer
     for i in range(0, len(theta0)):
@@ -58,7 +59,7 @@ def Covid_reg_k(theta0, prem_in, kcases_in, stand_age = 2, split = 2, debug = Fa
     
     return chisq
 
-
+# Function to calculate "smoothness" of a given set of parameters
 def smoothing(theta):
     smooth_s = 0
     smooth_v = 0

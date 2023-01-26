@@ -7,7 +7,6 @@ Created on Wed Jan 12 19:17:00 2022
 """
 
 import numpy as np
-from scipy import optimize, stats
 from math import isclose
 import math
 import warnings
