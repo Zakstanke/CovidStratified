@@ -16,8 +16,10 @@ The simplest way to use this code is to use the Markdown files, as they show how
     CovidMarkdownRegularized.ipynb - Markdown file for estimating parameters using regularization method. Cells show step by step instructions on how to input the data, run a basin hopping estimation, and export results to the Output folder.
     CovidReg.py - Python file containing functions specific to the regularization method. 
     StandCovid_figures.RMD - R Markdown file for creating box and whisker plots of the parameter estimation trials and heatmaps of various matricies. To get ALL of the results seen in the Output folder, you will need to modify the ggplot function calls in various ways, since this was written to explore our results visually instead of producing all the final graphs in one run.
+-------------------------------------------------------------------------------------------------------
 
 
+-------------------------------------------Executables-defunct-----------------------------------------
 -----Executable files below this line are included in the GitHub package for historical reference,-----
 -----but not used in the final version of the paper or computation. They likely don't work anymore-----
     CI testing.ipynb - Jupyter notebook markdown file for testing the functions to extract confidence intervals for our KL parameter estimates
