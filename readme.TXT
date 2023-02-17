@@ -7,6 +7,7 @@ The simplest way to use this code is to use the Markdown files, as they show how
     cases.csv - Subsetted data from fullcases.csv, only including case counts for the 6 countries grouped by decades
     prem___.csv - Contact Matricies, made by Prem et al., for 6 different countries (CAN, CHN, GBR, ISR, ITA, NLD)
     fullcases.csv - Case count with additional information like start/end dates, test counts, etc. Not used in computation
+    age_structure_data.csv - Similar data to fullcases.csv, but includes information about where and when the data was retrieved.
 -------------------------------------------------------------------------------------------------------
 
 

@@ -1,0 +1,15 @@
+﻿ISO 3166-1 alpha-3 Code,,Source,,Slope End Date,Report Date,Total tests per 1000,,0-9,10-19,20-29,30-39,40-49,50-59,60-69,70-79,80+,90+,unknown,TOTAL 80+
+,,,,,,Upper Bound on Report Date,,,,,,,,,,,,,
+CHN,,https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7187660/,,2/6/2020,2/11/2020,,Cases of COVID,416,549,3619,7600,8571,10008,8583,3918,1408,,,44672
+GBR,,https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/880848/COVID19_Weekly_Report_22_April.pdf,,4/6/2020,4/22/2020,8.515,,701,822,7299,10048,12319,15441,12081,14655,24325,,,97691
+CAN,Figure 5,https://www.canada.ca/content/dam/phac-aspc/documents/services/diseases/2019-novel-coronavirus-infection/en-surv-covid19-epi-update-2020-04-06.pdf,,4/6/2020,4/6/2020,8.924,,43,53,250,301,315,380,300,163,101,38,,1906
+ITA,Table 1,https://www.epicentro.iss.it/coronavirus/bollettino/Bollettino-sorveglianza-integrata-COVID-19_12-marzo-2020.pdf ,,4/5/2020,3/12/2020,15.469 [2020-04-19],,63,118,511,819,1523,2480,2421,2849,2138,395,565,12922
+ISR,,http://taubcenter.org.il/blog/coronavirus-mortality-age-structure/,*See below,4/5/2020,4/5/2020,14.225,,319,732,1865,1206,1051,1134,969,495,247,,,8018
+NLD,,https://www.rivm.nl/documenten/epidemiologische-situatie-covid-19-in-nederland-13-april-2020,,4/13/2020,4/13/2020,9.998 [2020-04-19],,71,214,1973,2152,2839,4719,3805,4531,4602,1617,28,24906
+,,,,,,,,,,,,,,,,,,,
+ISR*,,owid-covid-data.json provided 8018 total cases on 2020-04-05 for ISR,,,,,,,,,,,,,,,,,8018
+,,http://taubcenter.org.il/blog/coronavirus-mortality-age-structure/,,4/5/2020,4/5/2020,,,3.940677966,9.025423729,23.00847458,14.87288136,12.96610169,13.98305085,11.94915254,6.101694915,3.050847458,,,98.89830508
+,,data extracted from taubcenter data with ,,,,,,,,,,,,,,,,,
+,,https://automeris.io/WebPlotDigitizer/,,,,,,,,,,,,,,,,,
+Oxford World in Data,,https://ourworldindata.org/coronavirus-testing,,,,,,,,,,,,,,,,,
+,,"All testing for GBR,CAN,ISR,NDL less than 20/1000 pop./day",,,,,,,,,,,,,,,,,
